@@ -90,7 +90,18 @@ func (s *Router) Resolve(ctx context.Context, in core.RouteRequest) (core.RouteD
 	if reasonCode == "" {
 		reasonCode = "zen.route"
 	}
-	out := core.RouteDecision{RouteDecisionID: decisionID, RequestID: in.RequestID, TransactionID: in.TransactionID, Status: "selected", ConnectorID: registration.ConnectorID, Provider: registration.Provider, ProviderConnectionID: registration.ProviderConnectionID, Binding: binding, PolicyVersion: s.policyVersion, DecidedAt: now, ReasonCodes: []string{reasonCode}}
+	rail := in.Rail
+	if rail == "" {
+		rail = zen.Rail
+	}
+	if rail == "" && len(registration.Rails) == 1 {
+		rail = registration.Rails[0]
+	}
+	destinationMode := in.DestinationMode
+	if destinationMode == "" && len(registration.DestinationModes) == 1 {
+		destinationMode = registration.DestinationModes[0]
+	}
+	out := core.RouteDecision{RouteDecisionID: decisionID, RequestID: in.RequestID, TransactionID: in.TransactionID, Status: "selected", ConnectorID: registration.ConnectorID, Provider: registration.Provider, ProviderConnectionID: registration.ProviderConnectionID, Rail: rail, DestinationMode: destinationMode, Binding: binding, PolicyVersion: s.policyVersion, DecidedAt: now, ReasonCodes: []string{reasonCode}}
 	body, _ := json.Marshal(out)
 	saved, _, err := s.store.Save(ctx, in.RequestID, hash, body)
 	if err != nil {

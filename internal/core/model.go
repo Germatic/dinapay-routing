@@ -49,6 +49,8 @@ type RouteDecision struct {
 	ConnectorID          string           `json:"connectorId"`
 	Provider             string           `json:"provider"`
 	ProviderConnectionID string           `json:"providerConnectionId"`
+	Rail                 string           `json:"rail"`
+	DestinationMode      string           `json:"destinationMode,omitempty"`
 	Binding              *ProviderBinding `json:"binding,omitempty"`
 	PolicyVersion        string           `json:"policyVersion"`
 	DecidedAt            time.Time        `json:"decidedAt"`

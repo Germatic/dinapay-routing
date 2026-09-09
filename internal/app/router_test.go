@@ -58,8 +58,19 @@ func TestResolveUsesZenCapabilitiesBindingAndIdempotency(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if first.RouteDecisionID != second.RouteDecisionID || rules.calls != 1 || first.Binding == nil || first.Binding.ExternalEntityID != "123" {
+	if first.RouteDecisionID != second.RouteDecisionID || rules.calls != 1 || first.Rail != "binance_pay" || first.Binding == nil || first.Binding.ExternalEntityID != "123" {
 		t.Fatalf("first=%#v second=%#v calls=%d", first, second, rules.calls)
+	}
+}
+
+func TestResolveInfersSingleDestinationMode(t *testing.T) {
+	rules := &rulesStub{decision: core.ZenDecision{Provider: "transferdirecto", ProviderConnectionID: "transferdirecto_main", Rail: "spei", Decision: "route", RuleID: "payin.mxn.default"}}
+	store := &decisionStub{saved: map[string]savedDecision{}, binding: &core.ProviderBinding{BindingID: "binding1", EntityType: "merchant", EntityID: "merchant1", ExternalEntityType: "cost_center", ExternalEntityID: "37"}}
+	registrations := []core.Registration{{ConnectorID: "connector-transferdirecto-v2", Provider: "transferdirecto", ProviderConnectionID: "transferdirecto_main", Countries: []string{"MX"}, Currencies: []string{"MXN"}, PaymentMethods: []string{"bank_transfer"}, Rails: []string{"spei"}, DestinationModes: []string{"single_use"}, BindingRequirement: &core.BindingRequirement{EntityType: "merchant", ExternalEntityType: "cost_center"}, Active: true}}
+	router := New(rules, store, registrations, "rules-1")
+	out, err := router.Resolve(context.Background(), core.RouteRequest{RequestID: "11111111-1111-4111-8111-111111111111", TransactionID: "22222222-2222-4222-8222-222222222222", AccountID: "account1", MerchantID: "merchant1", Operation: "payment", Amount: "100.00", Currency: "MXN", MarketCountry: "MX", PaymentMethod: "bank_transfer"})
+	if err != nil || out.Rail != "spei" || out.DestinationMode != "single_use" {
+		t.Fatalf("out=%#v err=%v", out, err)
 	}
 }
 
