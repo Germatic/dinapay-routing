@@ -1,0 +1,27 @@
+[
+  {
+    "connectorId": "connector-binancepay-v2",
+    "provider": "binancepay",
+    "providerConnectionId": "binancepay_sandbox_main",
+    "countries": ["AR", "BR", "UY", "VE"],
+    "currencies": ["USDT", "USDC"],
+    "paymentMethods": ["crypto_payment"],
+    "rails": ["binance_pay"],
+    "features": ["refund", "partial_refund", "cancel", "reconciliation"],
+    "bindingRequirement": {"entityType": "merchant", "externalEntityType": "sub_merchant"},
+    "active": true
+  },
+  {
+    "connectorId": "connector-transferdirecto-v2",
+    "provider": "transferdirecto",
+    "providerConnectionId": "transferdirecto_main",
+    "countries": ["MX"],
+    "currencies": ["MXN"],
+    "paymentMethods": ["bank_transfer"],
+    "rails": ["spei"],
+    "destinationModes": ["single_use"],
+    "features": ["reconciliation"],
+    "bindingRequirement": {"entityType": "merchant", "externalEntityType": "cost_center"},
+    "active": true
+  }
+]
