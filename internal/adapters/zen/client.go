@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Germatic/dinapay-routing/internal/core"
+	"io"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -23,7 +25,14 @@ func New(baseURL, project, decision, token string) *Client {
 	if decision == "" {
 		decision = "payin_routing"
 	}
-	return &Client{strings.TrimRight(baseURL, "/"), project, decision, token, &http.Client{Timeout: 2 * time.Second}}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.DialContext = (&net.Dialer{Timeout: time.Second, KeepAlive: 30 * time.Second}).DialContext
+	transport.MaxIdleConns = 64
+	transport.MaxIdleConnsPerHost = 32
+	transport.MaxConnsPerHost = 64
+	transport.IdleConnTimeout = 90 * time.Second
+	transport.ResponseHeaderTimeout = 1500 * time.Millisecond
+	return &Client{strings.TrimRight(baseURL, "/"), project, decision, token, &http.Client{Timeout: 2 * time.Second, Transport: transport}}
 }
 func (c *Client) Evaluate(ctx context.Context, in core.RouteRequest) (core.ZenDecision, error) {
 	amount := json.Number(in.Amount)
@@ -49,6 +58,7 @@ func (c *Client) Evaluate(ctx context.Context, in core.RouteRequest) (core.ZenDe
 		return core.ZenDecision{}, err
 	}
 	defer resp.Body.Close()
+	defer func() { _, _ = io.Copy(io.Discard, resp.Body) }()
 	if resp.StatusCode >= 300 {
 		return core.ZenDecision{}, fmt.Errorf("ZEN returned %s", resp.Status)
 	}
