@@ -1,13 +1,18 @@
 package httpapi
 
 import (
+	"crypto/rand"
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
-	"github.com/Germatic/dinapay-routing/internal/app"
-	"github.com/Germatic/dinapay-routing/internal/core"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/Germatic/dinapay-routing/internal/app"
+	"github.com/Germatic/dinapay-routing/internal/core"
 )
 
 func New(router *app.Router, token string) http.Handler {
@@ -47,7 +52,74 @@ func New(router *app.Router, token string) http.Handler {
 		}
 		write(w, 503, errorBody("unavailable", err, true, in.RequestID))
 	})
-	return mux
+	return observe(mux)
+}
+
+type statusWriter struct {
+	http.ResponseWriter
+	status      int
+	wroteHeader bool
+}
+
+func (w *statusWriter) WriteHeader(status int) {
+	if w.wroteHeader {
+		return
+	}
+	w.wroteHeader = true
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func observe(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		started := time.Now()
+		requestID := r.Header.Get("X-Request-Id")
+		if !validRequestID(requestID) {
+			requestID = randomHex(16)
+		}
+		traceparent := r.Header.Get("traceparent")
+		if !validTraceparent(traceparent) {
+			traceparent = fmt.Sprintf("00-%s-%s-01", randomHex(16), randomHex(8))
+		}
+		w.Header().Set("X-Request-Id", requestID)
+		w.Header().Set("traceparent", traceparent)
+		capture := &statusWriter{ResponseWriter: w, status: http.StatusOK}
+		ctx := core.WithObservability(r.Context(), requestID, traceparent)
+		next.ServeHTTP(capture, r.WithContext(ctx))
+		if r.URL.Path != "/health" && r.URL.Path != "/ready" {
+			slog.Info("http request", "method", r.Method, "path", r.URL.Path, "status", capture.status, "duration_ms", time.Since(started).Milliseconds(), "request_id", requestID, "traceparent", traceparent)
+		}
+	})
+}
+func randomHex(size int) string {
+	raw := make([]byte, size)
+	_, _ = rand.Read(raw)
+	return fmt.Sprintf("%x", raw)
+}
+func validRequestID(value string) bool {
+	if value == "" || len(value) > 128 {
+		return false
+	}
+	for _, c := range value {
+		if (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') && c != '-' && c != '_' && c != '.' {
+			return false
+		}
+	}
+	return true
+}
+func validTraceparent(value string) bool {
+	if len(value) != 55 || value[2] != '-' || value[35] != '-' || value[52] != '-' {
+		return false
+	}
+	for i, c := range value {
+		if i == 2 || i == 35 || i == 52 {
+			continue
+		}
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return false
+		}
+	}
+	return value[3:35] != strings.Repeat("0", 32) && value[36:52] != strings.Repeat("0", 16)
 }
 func errorBody(code string, err error, retryable bool, requestID string) map[string]any {
 	return map[string]any{"code": code, "message": err.Error(), "retryable": retryable, "requestId": requestID}

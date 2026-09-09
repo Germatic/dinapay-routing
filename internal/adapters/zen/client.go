@@ -50,6 +50,12 @@ func (c *Client) Evaluate(ctx context.Context, in core.RouteRequest) (core.ZenDe
 		return core.ZenDecision{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if requestID := core.RequestID(ctx); requestID != "" {
+		req.Header.Set("X-Request-Id", requestID)
+	}
+	if traceparent := core.Traceparent(ctx); traceparent != "" {
+		req.Header.Set("traceparent", traceparent)
+	}
 	if c.token != "" {
 		req.Header.Set("X-Access-Token", c.token)
 	}
