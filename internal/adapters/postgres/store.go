@@ -41,7 +41,7 @@ func (s *Store) Save(ctx context.Context, id, hash string, body []byte) ([]byte,
 }
 func (s *Store) Binding(ctx context.Context, entityType, entityID, provider, connectionID, externalType string) (*core.ProviderBinding, error) {
 	var b core.ProviderBinding
-	err := s.db.QueryRow(ctx, `SELECT binding_id::text,entity_type,entity_id,external_entity_type,external_entity_id FROM provider_entity_bindings WHERE entity_type=$1 AND entity_id=$2 AND provider=$3 AND provider_connection_id=$4 AND external_entity_type=$5 AND active=true`, entityType, entityID, provider, connectionID, externalType).Scan(&b.BindingID, &b.EntityType, &b.EntityID, &b.ExternalEntityType, &b.ExternalEntityID)
+	err := s.db.QueryRow(ctx, `SELECT id::text,entity_type,entity_id,external_entity_type,external_entity_id FROM provider_entity_bindings WHERE entity_type=$1 AND entity_id=$2 AND provider_code=$3 AND provider_connection_id=$4 AND external_entity_type=$5 AND status='active'`, entityType, entityID, provider, connectionID, externalType).Scan(&b.BindingID, &b.EntityType, &b.EntityID, &b.ExternalEntityType, &b.ExternalEntityID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
