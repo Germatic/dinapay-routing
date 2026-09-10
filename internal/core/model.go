@@ -22,6 +22,7 @@ type BindingRequirement struct {
 	ExternalEntityType string `json:"externalEntityType"`
 }
 type Registration struct {
+	MerchantID           string              `json:"merchantId,omitempty"`
 	ConnectorID          string              `json:"connectorId"`
 	Provider             string              `json:"provider"`
 	ProviderConnectionID string              `json:"providerConnectionId"`
@@ -33,6 +34,28 @@ type Registration struct {
 	Features             []string            `json:"features,omitempty"`
 	BindingRequirement   *BindingRequirement `json:"bindingRequirement,omitempty"`
 	Active               bool                `json:"active"`
+}
+
+type RoutingSnapshot struct {
+	Version string         `json:"version"`
+	Routes  []RuntimeRoute `json:"routes"`
+}
+
+type RuntimeRoute struct {
+	MerchantID           string               `json:"merchantId"`
+	Environment          string               `json:"environment"`
+	APIVersion           string               `json:"apiVersion"`
+	ConnectorID          string               `json:"connectorId"`
+	Provider             string               `json:"provider"`
+	ProviderConnectionID string               `json:"providerConnectionId"`
+	Operation            string               `json:"operation"`
+	Countries            []string             `json:"countries"`
+	Currencies           []string             `json:"currencies"`
+	PaymentMethods       []string             `json:"paymentMethods"`
+	Rails                []string             `json:"rails"`
+	DestinationModes     []string             `json:"destinationModes,omitempty"`
+	Features             []string             `json:"features,omitempty"`
+	BindingRequirements  []BindingRequirement `json:"bindingRequirements,omitempty"`
 }
 type ProviderBinding struct {
 	BindingID          string `json:"bindingId"`

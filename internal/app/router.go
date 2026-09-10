@@ -28,14 +28,22 @@ func (e NoRouteError) Error() string { return "no eligible route" }
 type Router struct {
 	rules         core.Rules
 	store         core.Decisions
-	registrations []core.Registration
+	registrations core.Registrations
 	policyVersion string
 	now           func() time.Time
 }
 
 func New(rules core.Rules, store core.Decisions, registrations []core.Registration, policyVersion string) *Router {
+	return NewWithRegistrations(rules, store, staticRegistrations(registrations), policyVersion)
+}
+
+func NewWithRegistrations(rules core.Rules, store core.Decisions, registrations core.Registrations, policyVersion string) *Router {
 	return &Router{rules: rules, store: store, registrations: registrations, policyVersion: policyVersion, now: time.Now}
 }
+
+type staticRegistrations []core.Registration
+
+func (s staticRegistrations) Current() []core.Registration { return s }
 
 func (s *Router) Resolve(ctx context.Context, in core.RouteRequest) (core.RouteDecision, error) {
 	if in.RequestID == "" || in.TransactionID == "" || in.MerchantID == "" || in.Operation != "payment" || !decimalPattern.MatchString(in.Amount) || in.Currency == "" || in.MarketCountry == "" || in.PaymentMethod == "" || s.policyVersion == "" {
@@ -66,7 +74,7 @@ func (s *Router) Resolve(ctx context.Context, in core.RouteRequest) (core.RouteD
 		no := core.NoRoute{RouteDecisionID: decisionID, RequestID: in.RequestID, TransactionID: in.TransactionID, Status: "no_route", PolicyVersion: s.policyVersion, DecidedAt: now, Rejections: []core.Rejection{{Code: "policy_rejected", Detail: zen.Reason}}}
 		return core.RouteDecision{}, s.saveNoRoute(ctx, in.RequestID, hash, no)
 	}
-	registration, rejections, ok := selectRegistration(s.registrations, in, zen)
+	registration, rejections, ok := selectRegistration(s.registrations.Current(), in, zen)
 	if !ok {
 		no := core.NoRoute{RouteDecisionID: decisionID, RequestID: in.RequestID, TransactionID: in.TransactionID, Status: "no_route", PolicyVersion: s.policyVersion, DecidedAt: now, Rejections: rejections}
 		return core.RouteDecision{}, s.saveNoRoute(ctx, in.RequestID, hash, no)
@@ -135,7 +143,7 @@ func selectRegistration(all []core.Registration, in core.RouteRequest, zen core.
 	var eligible []core.Registration
 	var rejected []core.Rejection
 	for _, r := range all {
-		if !r.Active || r.Provider != zen.Provider {
+		if !r.Active || r.Provider != zen.Provider || (r.MerchantID != "" && r.MerchantID != in.MerchantID) {
 			continue
 		}
 		code := ""

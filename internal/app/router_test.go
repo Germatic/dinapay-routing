@@ -84,3 +84,13 @@ func TestResolveRejectsMissingBinding(t *testing.T) {
 		t.Fatalf("unexpected error: %#v", err)
 	}
 }
+
+func TestResolveDoesNotUseAnotherMerchantsRegistration(t *testing.T) {
+	rules := &rulesStub{decision: core.ZenDecision{Provider: "binancepay", Decision: "route"}}
+	store := &decisionStub{saved: map[string]savedDecision{}}
+	router := New(rules, store, []core.Registration{{MerchantID: "merchant2", ConnectorID: "binance", Provider: "binancepay", ProviderConnectionID: "main", Countries: []string{"*"}, Currencies: []string{"USDT"}, PaymentMethods: []string{"crypto_payment"}, Rails: []string{"binance_pay"}, Active: true}}, "rules-1")
+	_, err := router.Resolve(context.Background(), core.RouteRequest{RequestID: "1", TransactionID: "2", MerchantID: "merchant1", Operation: "payment", Amount: "1.00", Currency: "USDT", MarketCountry: "UY", PaymentMethod: "crypto_payment"})
+	if _, ok := err.(NoRouteError); !ok {
+		t.Fatalf("unexpected error: %#v", err)
+	}
+}
