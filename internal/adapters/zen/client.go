@@ -14,11 +14,11 @@ import (
 )
 
 type Client struct {
-	baseURL, project, decision, token string
-	http                              *http.Client
+	baseURL, project, decision, payoutDecision, token string
+	http                                              *http.Client
 }
 
-func New(baseURL, project, decision, token string) *Client {
+func New(baseURL, project, decision, token string, payoutDecisions ...string) *Client {
 	if project == "" {
 		project = "default"
 	}
@@ -32,16 +32,27 @@ func New(baseURL, project, decision, token string) *Client {
 	transport.MaxConnsPerHost = 64
 	transport.IdleConnTimeout = 90 * time.Second
 	transport.ResponseHeaderTimeout = 1500 * time.Millisecond
-	return &Client{strings.TrimRight(baseURL, "/"), project, decision, token, &http.Client{Timeout: 2 * time.Second, Transport: transport}}
+	payoutDecision := "payout_routing"
+	if len(payoutDecisions) > 0 && payoutDecisions[0] != "" {
+		payoutDecision = payoutDecisions[0]
+	}
+	return &Client{strings.TrimRight(baseURL, "/"), project, decision, payoutDecision, token, &http.Client{Timeout: 2 * time.Second, Transport: transport}}
 }
 func (c *Client) Evaluate(ctx context.Context, in core.RouteRequest) (core.ZenDecision, error) {
 	amount := json.Number(in.Amount)
-	facts := map[string]any{"account_id": in.AccountID, "merchant_id": in.MerchantID, "currency": in.Currency, "country": in.MarketCountry, "flow": "payin", "amount": amount, "has_document": in.CustomerHasDocument, "payment_method": in.PaymentMethod}
+	flow := "payin"
+	if in.Operation == "payout" {
+		flow = "payout"
+	}
+	facts := map[string]any{"account_id": in.AccountID, "merchant_id": in.MerchantID, "currency": in.Currency, "destination_currency": in.DestinationCurrency, "country": in.MarketCountry, "flow": flow, "amount": amount, "has_document": in.CustomerHasDocument, "payment_method": in.PaymentMethod, "destination_identifier_type": in.Rail}
 	body, err := json.Marshal(map[string]any{"context": facts})
 	if err != nil {
 		return core.ZenDecision{}, err
 	}
 	key := c.decision
+	if in.Operation == "payout" {
+		key = c.payoutDecision
+	}
 	if !strings.HasSuffix(key, ".json") {
 		key += ".json"
 	}

@@ -166,7 +166,7 @@ func selectRegistration(all []core.Registration, in core.RouteRequest, zen core.
 			code = "method_unsupported"
 		} else if in.Rail != "" && !contains(r.Rails, in.Rail) {
 			code = "rail_unsupported"
-		} else if zen.Rail != "" && !contains(r.Rails, zen.Rail) {
+		} else if in.Rail == "" && zen.Rail != "" && !contains(r.Rails, zen.Rail) {
 			code = "rail_unsupported"
 		} else if in.DestinationMode != "" && !contains(r.DestinationModes, in.DestinationMode) {
 			code = "destination_mode_unsupported"

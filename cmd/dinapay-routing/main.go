@@ -35,7 +35,7 @@ func main() {
 		slog.Error("migration", "error", err)
 		os.Exit(1)
 	}
-	rules := zen.New(required("ZEN_URL"), os.Getenv("ZEN_PROJECT"), os.Getenv("ZEN_DECISION"), os.Getenv("ZEN_ACCESS_TOKEN"))
+	rules := zen.New(required("ZEN_URL"), os.Getenv("ZEN_PROJECT"), os.Getenv("ZEN_DECISION"), os.Getenv("ZEN_ACCESS_TOKEN"), env("ZEN_PAYOUT_DECISION", "payout_routing"))
 	var router *app.Router
 	routingMode := "static"
 	initialRoutes := len(routes)

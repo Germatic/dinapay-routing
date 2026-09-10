@@ -13,6 +13,7 @@ Target contract: `Germatic/dinapay-contracts` commit `c75b678`.
 - `ZEN_URL`: ZEN Agent URL, for example `http://127.0.0.1:8101`.
 - `ZEN_PROJECT`: defaults to `default`.
 - `ZEN_DECISION`: defaults to `payin_routing`.
+- `ZEN_PAYOUT_DECISION`: defaults to `payout_routing`.
 - `ZEN_POLICY_VERSION`: immutable rule deployment identifier.
 - `SERVICE_TOKEN`: bearer token accepted from Dinapay V2.
 - `CONTROL_PLANE_URL` and `CONTROL_PLANE_TOKEN`: when set, the router loads a
