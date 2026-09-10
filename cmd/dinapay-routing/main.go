@@ -37,6 +37,8 @@ func main() {
 	}
 	rules := zen.New(required("ZEN_URL"), os.Getenv("ZEN_PROJECT"), os.Getenv("ZEN_DECISION"), os.Getenv("ZEN_ACCESS_TOKEN"))
 	var router *app.Router
+	routingMode := "static"
+	initialRoutes := len(routes)
 	if controlPlaneURL := os.Getenv("CONTROL_PLANE_URL"); controlPlaneURL != "" {
 		source := controlplane.New(controlPlaneURL, required("CONTROL_PLANE_TOKEN"), env("ENVIRONMENT", "sandbox"), env("API_VERSION", "v2"))
 		refreshCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -46,13 +48,15 @@ func main() {
 			slog.Error("initial control-plane snapshot", "error", err)
 			os.Exit(1)
 		}
+		routingMode = "control_plane"
+		initialRoutes = len(source.Current())
 		go source.Run(context.Background(), 5*time.Second, func(err error) { slog.Error("refresh control-plane snapshot", "error", err) })
 		router = app.NewWithRegistrations(rules, store, source, required("ZEN_POLICY_VERSION"))
 	} else {
 		router = app.New(rules, store, routes, required("ZEN_POLICY_VERSION"))
 	}
 	server := &http.Server{Addr: ":" + env("PORT", "8091"), Handler: httpapi.New(router, required("SERVICE_TOKEN")), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 5 * time.Second, WriteTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
-	slog.Info("dinapay-routing starting", "addr", server.Addr, "routes", len(routes))
+	slog.Info("dinapay-routing starting", "addr", server.Addr, "routing_mode", routingMode, "initial_routes", initialRoutes)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		slog.Error("server", "error", err)
 		os.Exit(1)
