@@ -13,12 +13,14 @@ import (
 
 	"github.com/Germatic/dinapay-routing/internal/app"
 	"github.com/Germatic/dinapay-routing/internal/core"
+	"github.com/Germatic/dinapay-routing/internal/observability"
 )
 
 func New(router *app.Router, token string) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) { write(w, 200, map[string]string{"status": "up"}) })
 	mux.HandleFunc("GET /ready", func(w http.ResponseWriter, _ *http.Request) { write(w, 200, map[string]string{"status": "ready"}) })
+	mux.Handle("GET /metrics", observability.Handler())
 	mux.HandleFunc("POST /v1/routes/resolve", func(w http.ResponseWriter, r *http.Request) {
 		got := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if token == "" || subtle.ConstantTimeCompare([]byte(got), []byte(token)) != 1 {
@@ -85,8 +87,10 @@ func observe(next http.Handler) http.Handler {
 		w.Header().Set("traceparent", traceparent)
 		capture := &statusWriter{ResponseWriter: w, status: http.StatusOK}
 		ctx := core.WithObservability(r.Context(), requestID, traceparent)
-		next.ServeHTTP(capture, r.WithContext(ctx))
-		if r.URL.Path != "/health" && r.URL.Path != "/ready" {
+		request := r.WithContext(ctx)
+		next.ServeHTTP(capture, request)
+		observability.ObserveHTTP(r.Method, request.Pattern, capture.status, time.Since(started))
+		if r.URL.Path != "/health" && r.URL.Path != "/ready" && r.URL.Path != "/metrics" {
 			slog.Info("http request", "method", r.Method, "path", r.URL.Path, "status", capture.status, "duration_ms", time.Since(started).Milliseconds(), "request_id", requestID, "traceparent", traceparent)
 		}
 	})
