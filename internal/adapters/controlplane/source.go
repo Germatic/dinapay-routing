@@ -47,10 +47,10 @@ func (s *Source) Refresh(ctx context.Context) error {
 	}
 	routes := make([]core.Registration, 0, len(snapshot.Routes))
 	for _, r := range snapshot.Routes {
-		if r.Operation != "payment" {
+		if r.Operation != "payment" && r.Operation != "payout" {
 			continue
 		}
-		if r.MerchantID == "" || r.ConnectorID == "" || r.Provider == "" || r.ProviderConnectionID == "" || len(r.Countries) == 0 || len(r.Currencies) == 0 || len(r.PaymentMethods) == 0 || len(r.Rails) == 0 {
+		if r.MerchantID == "" || r.ConnectorID == "" || r.Provider == "" || r.ProviderConnectionID == "" || len(r.Countries) == 0 || len(r.Rails) == 0 || (r.Operation == "payment" && (len(r.Currencies) == 0 || len(r.PaymentMethods) == 0)) || (r.Operation == "payout" && (len(r.SourceCurrencies) == 0 || len(r.DestinationCurrencies) == 0)) {
 			return fmt.Errorf("control plane returned an invalid route")
 		}
 		if len(r.BindingRequirements) > 1 {
@@ -61,8 +61,9 @@ func (s *Source) Refresh(ctx context.Context) error {
 			requirement = &core.BindingRequirement{EntityType: candidate.EntityType, ExternalEntityType: candidate.ExternalEntityType}
 			break
 		}
-		routes = append(routes, core.Registration{MerchantID: r.MerchantID, ConnectorID: r.ConnectorID, Provider: r.Provider,
+		routes = append(routes, core.Registration{Operation: r.Operation, MerchantID: r.MerchantID, ConnectorID: r.ConnectorID, Provider: r.Provider,
 			ProviderConnectionID: r.ProviderConnectionID, Countries: r.Countries, Currencies: r.Currencies,
+			SourceCurrencies: r.SourceCurrencies, DestinationCurrencies: r.DestinationCurrencies,
 			PaymentMethods: r.PaymentMethods, Rails: r.Rails, DestinationModes: r.DestinationModes, Features: r.Features,
 			BindingRequirement: requirement, Active: true})
 	}

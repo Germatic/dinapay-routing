@@ -46,7 +46,8 @@ type staticRegistrations []core.Registration
 func (s staticRegistrations) Current() []core.Registration { return s }
 
 func (s *Router) Resolve(ctx context.Context, in core.RouteRequest) (core.RouteDecision, error) {
-	if in.RequestID == "" || in.TransactionID == "" || in.MerchantID == "" || in.Operation != "payment" || !decimalPattern.MatchString(in.Amount) || in.Currency == "" || in.MarketCountry == "" || in.PaymentMethod == "" || s.policyVersion == "" {
+	validOperation := in.Operation == "payment" || in.Operation == "payout"
+	if in.RequestID == "" || in.TransactionID == "" || in.MerchantID == "" || !validOperation || !decimalPattern.MatchString(in.Amount) || in.Currency == "" || in.MarketCountry == "" || (in.Operation == "payment" && in.PaymentMethod == "") || (in.Operation == "payout" && in.DestinationCurrency == "") || s.policyVersion == "" {
 		return core.RouteDecision{}, ErrInvalid
 	}
 	hash := requestHash(in)
@@ -143,7 +144,11 @@ func selectRegistration(all []core.Registration, in core.RouteRequest, zen core.
 	var eligible []core.Registration
 	var rejected []core.Rejection
 	for _, r := range all {
-		if !r.Active || r.Provider != zen.Provider || (r.MerchantID != "" && r.MerchantID != in.MerchantID) {
+		operation := r.Operation
+		if operation == "" {
+			operation = "payment"
+		}
+		if !r.Active || operation != in.Operation || r.Provider != zen.Provider || (r.MerchantID != "" && r.MerchantID != in.MerchantID) {
 			continue
 		}
 		code := ""
@@ -151,9 +156,13 @@ func selectRegistration(all []core.Registration, in core.RouteRequest, zen core.
 			code = "connection_disabled"
 		} else if !contains(r.Countries, in.MarketCountry) {
 			code = "country_unsupported"
-		} else if !contains(r.Currencies, in.Currency) {
+		} else if in.Operation == "payout" && !contains(r.SourceCurrencies, in.Currency) {
+			code = "source_currency_unsupported"
+		} else if in.Operation == "payout" && !contains(r.DestinationCurrencies, in.DestinationCurrency) {
+			code = "destination_currency_unsupported"
+		} else if in.Operation != "payout" && !contains(r.Currencies, in.Currency) {
 			code = "currency_unsupported"
-		} else if !contains(r.PaymentMethods, in.PaymentMethod) {
+		} else if in.Operation != "payout" && !contains(r.PaymentMethods, in.PaymentMethod) {
 			code = "method_unsupported"
 		} else if in.Rail != "" && !contains(r.Rails, in.Rail) {
 			code = "rail_unsupported"

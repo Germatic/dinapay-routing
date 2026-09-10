@@ -10,6 +10,7 @@ type RouteRequest struct {
 	Operation           string   `json:"operation"`
 	Amount              string   `json:"amount"`
 	Currency            string   `json:"currency"`
+	DestinationCurrency string   `json:"destinationCurrency,omitempty"`
 	MarketCountry       string   `json:"marketCountry"`
 	PaymentMethod       string   `json:"paymentMethod"`
 	CustomerHasDocument bool     `json:"customerHasDocument,omitempty"`
@@ -22,18 +23,21 @@ type BindingRequirement struct {
 	ExternalEntityType string `json:"externalEntityType"`
 }
 type Registration struct {
-	MerchantID           string              `json:"merchantId,omitempty"`
-	ConnectorID          string              `json:"connectorId"`
-	Provider             string              `json:"provider"`
-	ProviderConnectionID string              `json:"providerConnectionId"`
-	Countries            []string            `json:"countries"`
-	Currencies           []string            `json:"currencies"`
-	PaymentMethods       []string            `json:"paymentMethods"`
-	Rails                []string            `json:"rails"`
-	DestinationModes     []string            `json:"destinationModes,omitempty"`
-	Features             []string            `json:"features,omitempty"`
-	BindingRequirement   *BindingRequirement `json:"bindingRequirement,omitempty"`
-	Active               bool                `json:"active"`
+	Operation             string              `json:"operation"`
+	MerchantID            string              `json:"merchantId,omitempty"`
+	ConnectorID           string              `json:"connectorId"`
+	Provider              string              `json:"provider"`
+	ProviderConnectionID  string              `json:"providerConnectionId"`
+	Countries             []string            `json:"countries"`
+	Currencies            []string            `json:"currencies"`
+	SourceCurrencies      []string            `json:"sourceCurrencies,omitempty"`
+	DestinationCurrencies []string            `json:"destinationCurrencies,omitempty"`
+	PaymentMethods        []string            `json:"paymentMethods"`
+	Rails                 []string            `json:"rails"`
+	DestinationModes      []string            `json:"destinationModes,omitempty"`
+	Features              []string            `json:"features,omitempty"`
+	BindingRequirement    *BindingRequirement `json:"bindingRequirement,omitempty"`
+	Active                bool                `json:"active"`
 }
 
 type RoutingSnapshot struct {
@@ -42,20 +46,22 @@ type RoutingSnapshot struct {
 }
 
 type RuntimeRoute struct {
-	MerchantID           string               `json:"merchantId"`
-	Environment          string               `json:"environment"`
-	APIVersion           string               `json:"apiVersion"`
-	ConnectorID          string               `json:"connectorId"`
-	Provider             string               `json:"provider"`
-	ProviderConnectionID string               `json:"providerConnectionId"`
-	Operation            string               `json:"operation"`
-	Countries            []string             `json:"countries"`
-	Currencies           []string             `json:"currencies"`
-	PaymentMethods       []string             `json:"paymentMethods"`
-	Rails                []string             `json:"rails"`
-	DestinationModes     []string             `json:"destinationModes,omitempty"`
-	Features             []string             `json:"features,omitempty"`
-	BindingRequirements  []BindingRequirement `json:"bindingRequirements,omitempty"`
+	MerchantID            string               `json:"merchantId"`
+	Environment           string               `json:"environment"`
+	APIVersion            string               `json:"apiVersion"`
+	ConnectorID           string               `json:"connectorId"`
+	Provider              string               `json:"provider"`
+	ProviderConnectionID  string               `json:"providerConnectionId"`
+	Operation             string               `json:"operation"`
+	Countries             []string             `json:"countries"`
+	Currencies            []string             `json:"currencies"`
+	SourceCurrencies      []string             `json:"sourceCurrencies,omitempty"`
+	DestinationCurrencies []string             `json:"destinationCurrencies,omitempty"`
+	PaymentMethods        []string             `json:"paymentMethods"`
+	Rails                 []string             `json:"rails"`
+	DestinationModes      []string             `json:"destinationModes,omitempty"`
+	Features              []string             `json:"features,omitempty"`
+	BindingRequirements   []BindingRequirement `json:"bindingRequirements,omitempty"`
 }
 type ProviderBinding struct {
 	BindingID          string `json:"bindingId"`
