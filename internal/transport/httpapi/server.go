@@ -20,7 +20,7 @@ func New(router *app.Router, token string) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) { write(w, 200, map[string]string{"status": "up"}) })
 	mux.HandleFunc("GET /ready", func(w http.ResponseWriter, _ *http.Request) { write(w, 200, map[string]string{"status": "ready"}) })
-	mux.Handle("GET /metrics", observability.Handler())
+	mux.Handle("GET /metrics", internalOnly(observability.Handler()))
 	mux.HandleFunc("POST /v1/routes/resolve", func(w http.ResponseWriter, r *http.Request) {
 		got := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if token == "" || subtle.ConstantTimeCompare([]byte(got), []byte(token)) != 1 {
@@ -55,6 +55,15 @@ func New(router *app.Router, token string) http.Handler {
 		write(w, 503, errorBody("unavailable", err, true, in.RequestID))
 	})
 	return observe(mux)
+}
+func internalOnly(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Forwarded-For") != "" || r.Header.Get("X-Real-IP") != "" {
+			http.NotFound(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 type statusWriter struct {
