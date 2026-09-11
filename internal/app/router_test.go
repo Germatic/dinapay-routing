@@ -77,9 +77,9 @@ func TestResolveInfersSingleDestinationMode(t *testing.T) {
 func TestResolvePayoutMatchesBothCurrencies(t *testing.T) {
 	rules := &rulesStub{decision: core.ZenDecision{Provider: "insular", ProviderConnectionID: "insular_sandbox", Rail: "ve_mobile_payment", Decision: "route"}}
 	store := &decisionStub{saved: map[string]savedDecision{}}
-	registrations := []core.Registration{{Operation: "payout", ConnectorID: "connector-insular-v2", Provider: "insular", ProviderConnectionID: "insular_sandbox", Countries: []string{"VE"}, SourceCurrencies: []string{"USDT"}, DestinationCurrencies: []string{"VES"}, Rails: []string{"ve_mobile_payment"}, Active: true}}
+	registrations := []core.Registration{{Operation: "payout", ConnectorID: "connector-insular-v2", Provider: "insular", ProviderConnectionID: "insular_sandbox", Countries: []string{"VE"}, SourceCurrencies: []string{"USD"}, DestinationCurrencies: []string{"VES"}, Rails: []string{"ve_mobile_payment"}, Active: true}}
 	router := New(rules, store, registrations, "rules-1")
-	in := core.RouteRequest{RequestID: "request-1", TransactionID: "payout-1", MerchantID: "merchant1", Operation: "payout", Amount: "100.00", Currency: "USDT", DestinationCurrency: "VES", MarketCountry: "VE", Rail: "ve_mobile_payment"}
+	in := core.RouteRequest{RequestID: "request-1", TransactionID: "payout-1", MerchantID: "merchant1", Operation: "payout", Amount: "100.00", Currency: "USD", DestinationCurrency: "VES", MarketCountry: "VE", Rail: "ve_mobile_payment"}
 	out, err := router.Resolve(context.Background(), in)
 	if err != nil || out.ConnectorID != "connector-insular-v2" {
 		t.Fatalf("out=%#v err=%v", out, err)

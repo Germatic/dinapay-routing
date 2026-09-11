@@ -28,7 +28,7 @@ func TestEvaluateUsesPayoutDecisionAndFacts(t *testing.T) {
 	defer server.Close()
 
 	client := New(server.URL, "default", "payin_routing", "", "custom_payout")
-	got, err := client.Evaluate(t.Context(), core.RouteRequest{Operation: "payout", Amount: "1.00", Currency: "USDT", DestinationCurrency: "VES", Rail: "ve_mobile_payment"})
+	got, err := client.Evaluate(t.Context(), core.RouteRequest{Operation: "payout", Amount: "1.00", Currency: "USD", DestinationCurrency: "VES", Rail: "ve_mobile_payment"})
 	if err != nil || got.Provider != "insular" {
 		t.Fatalf("result=%#v err=%v", got, err)
 	}
