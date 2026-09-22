@@ -12,13 +12,18 @@ import (
 	"time"
 
 	"github.com/Germatic/dinapay-routing/internal/app"
+	"github.com/Germatic/dinapay-routing/internal/buildinfo"
 	"github.com/Germatic/dinapay-routing/internal/core"
 	"github.com/Germatic/dinapay-routing/internal/observability"
 )
 
 func New(router *app.Router, token string) http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) { write(w, 200, map[string]string{"status": "up"}) })
+	info := buildinfo.Current("dinapay-routing")
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
+		write(w, 200, map[string]any{"status": "up", "build": info})
+	})
+	mux.HandleFunc("GET /version", func(w http.ResponseWriter, _ *http.Request) { write(w, 200, info) })
 	mux.HandleFunc("GET /ready", func(w http.ResponseWriter, _ *http.Request) { write(w, 200, map[string]string{"status": "ready"}) })
 	mux.Handle("GET /metrics", internalOnly(observability.Handler()))
 	mux.HandleFunc("POST /v1/routes/resolve", func(w http.ResponseWriter, r *http.Request) {
