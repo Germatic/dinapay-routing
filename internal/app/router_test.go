@@ -10,11 +10,41 @@ import (
 type rulesStub struct {
 	calls    int
 	decision core.ZenDecision
+	last     core.RouteRequest
 }
 
-func (r *rulesStub) Evaluate(_ context.Context, _ core.RouteRequest) (core.ZenDecision, error) {
+func (r *rulesStub) Evaluate(_ context.Context, in core.RouteRequest) (core.ZenDecision, error) {
 	r.calls++
+	r.last = in
 	return r.decision, nil
+}
+
+func TestResolveDerivesRoutingProfileFromControlPlaneRegistration(t *testing.T) {
+	rules := &rulesStub{decision: core.ZenDecision{Provider: "pvs", ProviderConnectionID: "pvs_main", Rail: "ar_bank_transfer", Decision: "route"}}
+	store := &decisionStub{saved: map[string]savedDecision{}}
+	registrations := []core.Registration{{Operation: "payout", MerchantID: "merchant1", RoutingProfile: "pvs_argentina", ConnectorID: "connector-pvs-v2", Provider: "pvs", ProviderConnectionID: "pvs_main", Countries: []string{"AR"}, SourceCurrencies: []string{"ARS"}, DestinationCurrencies: []string{"ARS"}, Rails: []string{"ar_bank_transfer"}, Active: true}}
+	router := New(rules, store, registrations, "rules-1")
+	in := core.RouteRequest{RequestID: "11111111-1111-4111-8111-111111111111", TransactionID: "22222222-2222-4222-8222-222222222222", AccountID: "account1", MerchantID: "merchant1", Operation: "payout", Amount: "1.00", Currency: "ARS", DestinationCurrency: "ARS", MarketCountry: "AR", Rail: "ar_bank_transfer"}
+	if _, err := router.Resolve(context.Background(), in); err != nil {
+		t.Fatal(err)
+	}
+	if rules.last.RoutingProfile != "pvs_argentina" {
+		t.Fatalf("routing profile=%q", rules.last.RoutingProfile)
+	}
+}
+
+func TestResolveKeepsEmptyRoutingProfileForLegacyFallback(t *testing.T) {
+	rules := &rulesStub{decision: core.ZenDecision{Provider: "pvs", ProviderConnectionID: "pvs_main", Rail: "ar_bank_transfer", Decision: "route"}}
+	store := &decisionStub{saved: map[string]savedDecision{}}
+	registrations := []core.Registration{{Operation: "payout", MerchantID: "merchant1", ConnectorID: "connector-pvs-v2", Provider: "pvs", ProviderConnectionID: "pvs_main", Countries: []string{"AR"}, SourceCurrencies: []string{"ARS"}, DestinationCurrencies: []string{"ARS"}, Rails: []string{"ar_bank_transfer"}, Active: true}}
+	router := New(rules, store, registrations, "rules-1")
+	in := core.RouteRequest{RequestID: "11111111-1111-4111-8111-111111111112", TransactionID: "22222222-2222-4222-8222-222222222223", AccountID: "account1", MerchantID: "merchant1", Operation: "payout", Amount: "1.00", Currency: "ARS", DestinationCurrency: "ARS", MarketCountry: "AR", Rail: "ar_bank_transfer"}
+	if _, err := router.Resolve(context.Background(), in); err != nil {
+		t.Fatal(err)
+	}
+	if rules.last.RoutingProfile != "" {
+		t.Fatalf("routing profile=%q", rules.last.RoutingProfile)
+	}
 }
 
 type savedDecision struct {

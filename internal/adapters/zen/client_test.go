@@ -20,7 +20,7 @@ func TestEvaluateUsesPayoutDecisionAndFacts(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			t.Fatal(err)
 		}
-		if body.Context["flow"] != "payout" || body.Context["destination_identifier_type"] != "ve_mobile_payment" || body.Context["destination_currency"] != "VES" {
+		if body.Context["flow"] != "payout" || body.Context["routing_profile"] != "insular_venezuela" || body.Context["destination_identifier_type"] != "ve_mobile_payment" || body.Context["destination_currency"] != "VES" {
 			t.Fatalf("context=%#v", body.Context)
 		}
 		_, _ = w.Write([]byte(`{"result":{"provider_code":"insular","decision":"route"}}`))
@@ -28,7 +28,7 @@ func TestEvaluateUsesPayoutDecisionAndFacts(t *testing.T) {
 	defer server.Close()
 
 	client := New(server.URL, "default", "payin_routing", "", "custom_payout")
-	got, err := client.Evaluate(t.Context(), core.RouteRequest{Operation: "payout", Amount: "1.00", Currency: "USD", DestinationCurrency: "VES", Rail: "ve_mobile_payment"})
+	got, err := client.Evaluate(t.Context(), core.RouteRequest{Operation: "payout", RoutingProfile: "insular_venezuela", Amount: "1.00", Currency: "USD", DestinationCurrency: "VES", Rail: "ve_mobile_payment"})
 	if err != nil || got.Provider != "insular" {
 		t.Fatalf("result=%#v err=%v", got, err)
 	}

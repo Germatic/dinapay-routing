@@ -17,6 +17,7 @@ type RouteRequest struct {
 	Rail                string   `json:"rail,omitempty"`
 	DestinationMode     string   `json:"destinationMode,omitempty"`
 	RequiredFeatures    []string `json:"requiredFeatures,omitempty"`
+	RoutingProfile      string   `json:"-"`
 }
 type BindingRequirement struct {
 	EntityType         string `json:"entityType"`
@@ -25,6 +26,7 @@ type BindingRequirement struct {
 type Registration struct {
 	Operation             string              `json:"operation"`
 	MerchantID            string              `json:"merchantId,omitempty"`
+	RoutingProfile        string              `json:"routingProfile,omitempty"`
 	ConnectorID           string              `json:"connectorId"`
 	Provider              string              `json:"provider"`
 	ProviderConnectionID  string              `json:"providerConnectionId"`
@@ -47,6 +49,7 @@ type RoutingSnapshot struct {
 
 type RuntimeRoute struct {
 	MerchantID            string               `json:"merchantId"`
+	RoutingProfile        string               `json:"routingProfile,omitempty"`
 	Environment           string               `json:"environment"`
 	APIVersion            string               `json:"apiVersion"`
 	ConnectorID           string               `json:"connectorId"`

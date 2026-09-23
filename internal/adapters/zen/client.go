@@ -44,7 +44,7 @@ func (c *Client) Evaluate(ctx context.Context, in core.RouteRequest) (core.ZenDe
 	if in.Operation == "payout" {
 		flow = "payout"
 	}
-	facts := map[string]any{"account_id": in.AccountID, "merchant_id": in.MerchantID, "currency": in.Currency, "destination_currency": in.DestinationCurrency, "country": in.MarketCountry, "flow": flow, "amount": amount, "has_document": in.CustomerHasDocument, "payment_method": in.PaymentMethod, "destination_identifier_type": in.Rail}
+	facts := map[string]any{"account_id": in.AccountID, "merchant_id": in.MerchantID, "routing_profile": in.RoutingProfile, "currency": in.Currency, "destination_currency": in.DestinationCurrency, "country": in.MarketCountry, "flow": flow, "amount": amount, "has_document": in.CustomerHasDocument, "payment_method": in.PaymentMethod, "destination_identifier_type": in.Rail}
 	body, err := json.Marshal(map[string]any{"context": facts})
 	if err != nil {
 		return core.ZenDecision{}, err

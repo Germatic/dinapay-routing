@@ -65,6 +65,8 @@ func (s *Router) Resolve(ctx context.Context, in core.RouteRequest) (core.RouteD
 		_ = json.Unmarshal(body, &no)
 		return core.RouteDecision{}, NoRouteError{no}
 	}
+	registrations := s.registrations.Current()
+	in.RoutingProfile = routingProfile(registrations, in)
 	zen, err := s.rules.Evaluate(ctx, in)
 	if err != nil {
 		return core.RouteDecision{}, fmt.Errorf("%w: %v", ErrUnavailable, err)
@@ -75,7 +77,7 @@ func (s *Router) Resolve(ctx context.Context, in core.RouteRequest) (core.RouteD
 		no := core.NoRoute{RouteDecisionID: decisionID, RequestID: in.RequestID, TransactionID: in.TransactionID, Status: "no_route", PolicyVersion: s.policyVersion, DecidedAt: now, Rejections: []core.Rejection{{Code: "policy_rejected", Detail: zen.Reason}}}
 		return core.RouteDecision{}, s.saveNoRoute(ctx, in.RequestID, hash, no)
 	}
-	registration, rejections, ok := selectRegistration(s.registrations.Current(), in, zen)
+	registration, rejections, ok := selectRegistration(registrations, in, zen)
 	if !ok {
 		no := core.NoRoute{RouteDecisionID: decisionID, RequestID: in.RequestID, TransactionID: in.TransactionID, Status: "no_route", PolicyVersion: s.policyVersion, DecidedAt: now, Rejections: rejections}
 		return core.RouteDecision{}, s.saveNoRoute(ctx, in.RequestID, hash, no)
@@ -118,6 +120,40 @@ func (s *Router) Resolve(ctx context.Context, in core.RouteRequest) (core.RouteD
 	}
 	_ = json.Unmarshal(saved, &out)
 	return out, nil
+}
+
+// routingProfile resolves operator-controlled routing metadata from the active
+// Control Plane snapshot. It is never accepted from the public route request.
+// An empty result deliberately preserves the legacy account-based Zen rules.
+func routingProfile(all []core.Registration, in core.RouteRequest) string {
+	profile := ""
+	for _, r := range all {
+		operation := r.Operation
+		if operation == "" {
+			operation = "payment"
+		}
+		if !r.Active || r.MerchantID != in.MerchantID || operation != in.Operation || !contains(r.Countries, in.MarketCountry) {
+			continue
+		}
+		if in.Operation == "payout" {
+			if !contains(r.SourceCurrencies, in.Currency) || !contains(r.DestinationCurrencies, in.DestinationCurrency) {
+				continue
+			}
+		} else if !contains(r.Currencies, in.Currency) || !contains(r.PaymentMethods, in.PaymentMethod) {
+			continue
+		}
+		if in.Rail != "" && !contains(r.Rails, in.Rail) {
+			continue
+		}
+		if r.RoutingProfile == "" {
+			continue
+		}
+		if profile != "" && profile != r.RoutingProfile {
+			return ""
+		}
+		profile = r.RoutingProfile
+	}
+	return profile
 }
 func (s *Router) saveNoRoute(ctx context.Context, id, hash string, no core.NoRoute) error {
 	body, _ := json.Marshal(no)
