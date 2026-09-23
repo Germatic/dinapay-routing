@@ -13,7 +13,7 @@ func TestRefreshPublishesValidatedRuntimeRoutes(t *testing.T) {
 			t.Fatalf("authorization=%q", r.Header.Get("Authorization"))
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"version":"v1","routes":[{"merchantId":"merchant1","environment":"sandbox","apiVersion":"v2","connectorId":"connector-binancepay-v2","provider":"binancepay","providerConnectionId":"main","operation":"payment","countries":["*"],"currencies":["USDT"],"paymentMethods":["crypto_payment"],"rails":["binance_pay"],"features":["refund"],"bindingRequirements":[{"entityType":"merchant","externalEntityType":"sub_merchant"}]}]}`))
+		_, _ = w.Write([]byte(`{"version":"v1","routes":[{"merchantId":"merchant1","routingProfile":"binancepay_global","environment":"sandbox","apiVersion":"v2","connectorId":"connector-binancepay-v2","provider":"binancepay","providerConnectionId":"main","operation":"payment","countries":["*"],"currencies":["USDT"],"paymentMethods":["crypto_payment"],"rails":["binance_pay"],"features":["refund"],"bindingRequirements":[{"entityType":"merchant","externalEntityType":"sub_merchant"}]}]}`))
 	}))
 	defer server.Close()
 	source := New(server.URL, "runtime-secret", "sandbox", "v2")
@@ -21,7 +21,7 @@ func TestRefreshPublishesValidatedRuntimeRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 	routes := source.Current()
-	if len(routes) != 1 || routes[0].MerchantID != "merchant1" || routes[0].BindingRequirement == nil || routes[0].BindingRequirement.ExternalEntityType != "sub_merchant" {
+	if len(routes) != 1 || routes[0].MerchantID != "merchant1" || routes[0].RoutingProfile != "binancepay_global" || routes[0].BindingRequirement == nil || routes[0].BindingRequirement.ExternalEntityType != "sub_merchant" {
 		t.Fatalf("routes=%#v", routes)
 	}
 }

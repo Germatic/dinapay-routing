@@ -61,7 +61,7 @@ func (s *Source) Refresh(ctx context.Context) error {
 			requirement = &core.BindingRequirement{EntityType: candidate.EntityType, ExternalEntityType: candidate.ExternalEntityType}
 			break
 		}
-		routes = append(routes, core.Registration{Operation: r.Operation, MerchantID: r.MerchantID, ConnectorID: r.ConnectorID, Provider: r.Provider,
+		routes = append(routes, core.Registration{Operation: r.Operation, MerchantID: r.MerchantID, RoutingProfile: r.RoutingProfile, ConnectorID: r.ConnectorID, Provider: r.Provider,
 			ProviderConnectionID: r.ProviderConnectionID, Countries: r.Countries, Currencies: r.Currencies,
 			SourceCurrencies: r.SourceCurrencies, DestinationCurrencies: r.DestinationCurrencies,
 			PaymentMethods: r.PaymentMethods, Rails: r.Rails, DestinationModes: r.DestinationModes, Features: r.Features,

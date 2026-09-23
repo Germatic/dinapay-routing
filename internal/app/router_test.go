@@ -10,11 +10,27 @@ import (
 type rulesStub struct {
 	calls    int
 	decision core.ZenDecision
+	input    core.RouteRequest
 }
 
-func (r *rulesStub) Evaluate(_ context.Context, _ core.RouteRequest) (core.ZenDecision, error) {
+func (r *rulesStub) Evaluate(_ context.Context, in core.RouteRequest) (core.ZenDecision, error) {
 	r.calls++
+	r.input = in
 	return r.decision, nil
+}
+
+func TestResolvePropagatesRoutingProfileFromMatchingCapability(t *testing.T) {
+	rules := &rulesStub{decision: core.ZenDecision{Provider: "pvs", ProviderConnectionID: "pvs_production_main", Rail: "ar_qr", Decision: "route"}}
+	store := &decisionStub{saved: map[string]savedDecision{}}
+	registrations := []core.Registration{{MerchantID: "dinariatest", RoutingProfile: "pvs_argentina", ConnectorID: "connector-pvs-v2", Provider: "pvs", ProviderConnectionID: "pvs_production_main", Countries: []string{"AR"}, Currencies: []string{"ARS"}, PaymentMethods: []string{"qr"}, Rails: []string{"ar_qr"}, DestinationModes: []string{"single_use"}, Active: true}}
+	router := New(rules, store, registrations, "rules-1")
+	_, err := router.Resolve(context.Background(), core.RouteRequest{RequestID: "11111111-1111-4111-8111-111111111111", TransactionID: "22222222-2222-4222-8222-222222222222", MerchantID: "dinariatest", Operation: "payment", Amount: "1500.00", Currency: "ARS", MarketCountry: "AR", PaymentMethod: "qr", Rail: "ar_qr", DestinationMode: "single_use"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rules.input.RoutingProfile != "pvs_argentina" {
+		t.Fatalf("routing profile=%q", rules.input.RoutingProfile)
+	}
 }
 
 type savedDecision struct {

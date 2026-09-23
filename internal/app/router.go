@@ -65,6 +65,7 @@ func (s *Router) Resolve(ctx context.Context, in core.RouteRequest) (core.RouteD
 		_ = json.Unmarshal(body, &no)
 		return core.RouteDecision{}, NoRouteError{no}
 	}
+	in.RoutingProfile = routingProfile(s.registrations.Current(), in)
 	zen, err := s.rules.Evaluate(ctx, in)
 	if err != nil {
 		return core.RouteDecision{}, fmt.Errorf("%w: %v", ErrUnavailable, err)
@@ -118,6 +119,45 @@ func (s *Router) Resolve(ctx context.Context, in core.RouteRequest) (core.RouteD
 	}
 	_ = json.Unmarshal(saved, &out)
 	return out, nil
+}
+
+// routingProfile derives the operator-controlled routing profile from routes
+// that match the requested capability. API callers cannot supply this value.
+// An empty value preserves the legacy merchant/account-based ZEN rules.
+func routingProfile(all []core.Registration, in core.RouteRequest) string {
+	profiles := map[string]struct{}{}
+	for _, r := range all {
+		operation := r.Operation
+		if operation == "" {
+			operation = "payment"
+		}
+		if !r.Active || operation != in.Operation || (r.MerchantID != "" && r.MerchantID != in.MerchantID) || r.RoutingProfile == "" {
+			continue
+		}
+		if !contains(r.Countries, in.MarketCountry) || (in.Operation == "payout" && (!contains(r.SourceCurrencies, in.Currency) || !contains(r.DestinationCurrencies, in.DestinationCurrency))) || (in.Operation != "payout" && (!contains(r.Currencies, in.Currency) || !contains(r.PaymentMethods, in.PaymentMethod))) {
+			continue
+		}
+		if in.Rail != "" && !contains(r.Rails, in.Rail) || in.DestinationMode != "" && !contains(r.DestinationModes, in.DestinationMode) {
+			continue
+		}
+		featuresMatch := true
+		for _, feature := range in.RequiredFeatures {
+			if !contains(r.Features, feature) {
+				featuresMatch = false
+				break
+			}
+		}
+		if featuresMatch {
+			profiles[r.RoutingProfile] = struct{}{}
+		}
+	}
+	if len(profiles) != 1 {
+		return ""
+	}
+	for profile := range profiles {
+		return profile
+	}
+	return ""
 }
 func (s *Router) saveNoRoute(ctx context.Context, id, hash string, no core.NoRoute) error {
 	body, _ := json.Marshal(no)
