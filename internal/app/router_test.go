@@ -47,7 +47,7 @@ func (d *decisionStub) Binding(_ context.Context, _, _, _, _, _ string) (*core.P
 func TestResolveUsesZenCapabilitiesBindingAndIdempotency(t *testing.T) {
 	rules := &rulesStub{decision: core.ZenDecision{Provider: "binancepay", ProviderConnectionID: "binancepay_sandbox_main", Rail: "binance_pay", Decision: "route", RuleID: "payin.usdt.binancepay"}}
 	store := &decisionStub{saved: map[string]savedDecision{}, binding: &core.ProviderBinding{BindingID: "binding1", EntityType: "merchant", EntityID: "merchant1", ExternalEntityType: "sub_merchant", ExternalEntityID: "123"}}
-	registrations := []core.Registration{{ConnectorID: "connector-binancepay-v2", Provider: "binancepay", ProviderConnectionID: "binancepay_sandbox_main", Countries: []string{"*"}, Currencies: []string{"USDT"}, PaymentMethods: []string{"crypto_payment"}, Rails: []string{"binance_pay"}, Features: []string{"refund"}, BindingRequirement: &core.BindingRequirement{EntityType: "merchant", ExternalEntityType: "sub_merchant"}, Active: true}}
+	registrations := []core.Registration{{ConnectorID: "connector-binancepay-v2", Provider: "binancepay", ProviderConnectionID: "binancepay_sandbox_main", ExecutionMode: "simulated", Countries: []string{"*"}, Currencies: []string{"USDT"}, PaymentMethods: []string{"crypto_payment"}, Rails: []string{"binance_pay"}, Features: []string{"refund"}, BindingRequirement: &core.BindingRequirement{EntityType: "merchant", ExternalEntityType: "sub_merchant"}, Active: true}}
 	router := New(rules, store, registrations, "rules-1")
 	in := core.RouteRequest{RequestID: "11111111-1111-4111-8111-111111111111", TransactionID: "22222222-2222-4222-8222-222222222222", AccountID: "account1", MerchantID: "merchant1", Operation: "payment", Amount: "0.25", Currency: "USDT", MarketCountry: "UY", PaymentMethod: "crypto_payment", RequiredFeatures: []string{"refund"}}
 	first, err := router.Resolve(context.Background(), in)
@@ -58,7 +58,7 @@ func TestResolveUsesZenCapabilitiesBindingAndIdempotency(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if first.RouteDecisionID != second.RouteDecisionID || rules.calls != 1 || first.Rail != "binance_pay" || first.Binding == nil || first.Binding.ExternalEntityID != "123" {
+	if first.RouteDecisionID != second.RouteDecisionID || rules.calls != 1 || first.Rail != "binance_pay" || first.ExecutionMode != "simulated" || first.Binding == nil || first.Binding.ExternalEntityID != "123" {
 		t.Fatalf("first=%#v second=%#v calls=%d", first, second, rules.calls)
 	}
 }

@@ -53,6 +53,15 @@ func (s *Source) Refresh(ctx context.Context) error {
 		if r.MerchantID == "" || r.ConnectorID == "" || r.Provider == "" || r.ProviderConnectionID == "" || len(r.Countries) == 0 || len(r.Rails) == 0 || (r.Operation == "payment" && (len(r.Currencies) == 0 || len(r.PaymentMethods) == 0)) || (r.Operation == "payout" && (len(r.SourceCurrencies) == 0 || len(r.DestinationCurrencies) == 0)) {
 			return fmt.Errorf("control plane returned an invalid route")
 		}
+		if r.ExecutionMode == "" {
+			r.ExecutionMode = "provider"
+		}
+		if r.ExecutionMode != "provider" && r.ExecutionMode != "simulated" {
+			return fmt.Errorf("control plane returned an invalid execution mode")
+		}
+		if r.ExecutionMode == "simulated" && r.Environment != "sandbox" {
+			return fmt.Errorf("control plane returned simulated execution outside sandbox")
+		}
 		if len(r.BindingRequirements) > 1 {
 			return fmt.Errorf("multiple binding requirements are not supported by routing contract v1")
 		}
@@ -62,7 +71,7 @@ func (s *Source) Refresh(ctx context.Context) error {
 			break
 		}
 		routes = append(routes, core.Registration{Operation: r.Operation, MerchantID: r.MerchantID, ConnectorID: r.ConnectorID, Provider: r.Provider,
-			ProviderConnectionID: r.ProviderConnectionID, Countries: r.Countries, Currencies: r.Currencies,
+			ProviderConnectionID: r.ProviderConnectionID, ExecutionMode: r.ExecutionMode, Countries: r.Countries, Currencies: r.Currencies,
 			SourceCurrencies: r.SourceCurrencies, DestinationCurrencies: r.DestinationCurrencies,
 			PaymentMethods: r.PaymentMethods, Rails: r.Rails, DestinationModes: r.DestinationModes, Features: r.Features,
 			BindingRequirement: requirement, Active: true})

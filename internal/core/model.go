@@ -28,6 +28,7 @@ type Registration struct {
 	ConnectorID           string              `json:"connectorId"`
 	Provider              string              `json:"provider"`
 	ProviderConnectionID  string              `json:"providerConnectionId"`
+	ExecutionMode         string              `json:"executionMode"`
 	Countries             []string            `json:"countries"`
 	Currencies            []string            `json:"currencies"`
 	SourceCurrencies      []string            `json:"sourceCurrencies,omitempty"`
@@ -52,6 +53,7 @@ type RuntimeRoute struct {
 	ConnectorID           string               `json:"connectorId"`
 	Provider              string               `json:"provider"`
 	ProviderConnectionID  string               `json:"providerConnectionId"`
+	ExecutionMode         string               `json:"executionMode"`
 	Operation             string               `json:"operation"`
 	Countries             []string             `json:"countries"`
 	Currencies            []string             `json:"currencies"`
@@ -78,6 +80,7 @@ type RouteDecision struct {
 	ConnectorID          string           `json:"connectorId"`
 	Provider             string           `json:"provider"`
 	ProviderConnectionID string           `json:"providerConnectionId"`
+	ExecutionMode        string           `json:"executionMode"`
 	Rail                 string           `json:"rail"`
 	DestinationMode      string           `json:"destinationMode,omitempty"`
 	Binding              *ProviderBinding `json:"binding,omitempty"`
