@@ -80,6 +80,10 @@ func (s *Router) Resolve(ctx context.Context, in core.RouteRequest) (core.RouteD
 		no := core.NoRoute{RouteDecisionID: decisionID, RequestID: in.RequestID, TransactionID: in.TransactionID, Status: "no_route", PolicyVersion: s.policyVersion, DecidedAt: now, Rejections: rejections}
 		return core.RouteDecision{}, s.saveNoRoute(ctx, in.RequestID, hash, no)
 	}
+	executionMode := registration.ExecutionMode
+	if executionMode == "" {
+		executionMode = "provider"
+	}
 	var binding *core.ProviderBinding
 	if requirement := registration.BindingRequirement; requirement != nil {
 		entityID := in.MerchantID
@@ -110,7 +114,7 @@ func (s *Router) Resolve(ctx context.Context, in core.RouteRequest) (core.RouteD
 	if destinationMode == "" && len(registration.DestinationModes) == 1 {
 		destinationMode = registration.DestinationModes[0]
 	}
-	out := core.RouteDecision{RouteDecisionID: decisionID, RequestID: in.RequestID, TransactionID: in.TransactionID, Status: "selected", ConnectorID: registration.ConnectorID, Provider: registration.Provider, ProviderConnectionID: registration.ProviderConnectionID, Rail: rail, DestinationMode: destinationMode, Binding: binding, PolicyVersion: s.policyVersion, DecidedAt: now, ReasonCodes: []string{reasonCode}}
+	out := core.RouteDecision{RouteDecisionID: decisionID, RequestID: in.RequestID, TransactionID: in.TransactionID, Status: "selected", ConnectorID: registration.ConnectorID, Provider: registration.Provider, ProviderConnectionID: registration.ProviderConnectionID, ExecutionMode: executionMode, Rail: rail, DestinationMode: destinationMode, Binding: binding, PolicyVersion: s.policyVersion, DecidedAt: now, ReasonCodes: []string{reasonCode}}
 	body, _ := json.Marshal(out)
 	saved, _, err := s.store.Save(ctx, in.RequestID, hash, body)
 	if err != nil {
